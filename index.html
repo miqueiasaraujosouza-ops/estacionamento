@@ -1,0 +1,2562 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartPark Pro - Sistema Completo de Estacionamento</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --secondary: #6366f1;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #1e293b;
+            --darker: #0f172a;
+            --light: #f8fafc;
+            --gray: #94a3b8;
+            --gray-light: #e2e8f0;
+            --sidebar-width: 280px;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+            --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.1);
+            --radius: 16px;
+            --radius-sm: 10px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--light);
+            color: var(--dark);
+            line-height: 1.6;
+        }
+
+        /* Loading Screen */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--darker);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.5s, visibility 0.5s;
+        }
+
+        .loading-screen.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .loader-icon {
+            font-size: 4rem;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            50% {
+                transform: scale(1.1);
+                opacity: 0.8;
+            }
+        }
+
+        .loader-text {
+            color: white;
+            margin-top: 20px;
+            font-size: 1.2rem;
+            text-align: center;
+        }
+
+        /* Layout */
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: linear-gradient(180deg, var(--darker) 0%, var(--dark) 100%);
+            color: white;
+            position: fixed;
+            height: 100vh;
+            left: 0;
+            top: 0;
+            z-index: 1000;
+            overflow-y: auto;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .sidebar-header {
+            padding: 30px 25px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+        }
+
+        .sidebar-logo {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .sidebar-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #3b82f6, #6366f1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .sidebar-subtitle {
+            font-size: 0.8rem;
+            color: var(--gray);
+            margin-top: 5px;
+        }
+
+        .sidebar-nav {
+            padding: 20px 15px;
+        }
+
+        .nav-section {
+            margin-bottom: 25px;
+        }
+
+        .nav-section-title {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--gray);
+            padding: 0 10px;
+            margin-bottom: 10px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            color: var(--gray);
+            text-decoration: none;
+            border-radius: var(--radius-sm);
+            margin-bottom: 5px;
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+        .nav-item i {
+            font-size: 1.2rem;
+            width: 25px;
+            margin-right: 12px;
+        }
+
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            transform: translateX(5px);
+        }
+
+        .nav-item.active {
+            background: linear-gradient(135deg, #3b82f6, #6366f1);
+            color: white;
+            box-shadow: 0 5px 15px rgba(99, 102, 241, 0.4);
+        }
+
+        .nav-badge {
+            background: var(--danger);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            margin-left: auto;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            padding: 30px;
+            min-height: 100vh;
+        }
+
+        /* Top Bar */
+        .top-bar {
+            background: white;
+            padding: 15px 30px;
+            border-radius: var(--radius);
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow);
+        }
+
+        .search-box {
+            position: relative;
+            flex: 1;
+            max-width: 400px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 20px 12px 45px;
+            border: 2px solid var(--gray-light);
+            border-radius: 50px;
+            font-size: 0.95rem;
+            transition: var(--transition);
+            background: var(--light);
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            background: white;
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray);
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .date-time-display {
+            text-align: right;
+        }
+
+        .current-time {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        .current-date {
+            font-size: 0.85rem;
+            color: var(--gray);
+        }
+
+        .user-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3b82f6, #6366f1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        /* Page Content */
+        .page {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, #3b82f6, #6366f1);
+            transform: scaleX(0);
+            transition: var(--transition);
+        }
+
+        .stat-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .stat-icon.blue {
+            background: #dbeafe;
+            color: #3b82f6;
+        }
+
+        .stat-icon.green {
+            background: #d1fae5;
+            color: #10b981;
+        }
+
+        .stat-icon.orange {
+            background: #fed7aa;
+            color: #f59e0b;
+        }
+
+        .stat-icon.purple {
+            background: #e0e7ff;
+            color: #6366f1;
+        }
+
+        .stat-trend {
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 20px;
+        }
+
+        .stat-trend.up {
+            background: #d1fae5;
+            color: #10b981;
+        }
+
+        .stat-trend.down {
+            background: #fee2e2;
+            color: #ef4444;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--gray);
+            font-weight: 500;
+        }
+
+        /* Dashboard Grids */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            border-radius: var(--radius);
+            padding: 25px;
+            box-shadow: var(--shadow);
+            margin-bottom: 25px;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* Forms */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--dark);
+            font-size: 0.9rem;
+        }
+
+        .form-input,
+        .form-select,
+        .form-textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid var(--gray-light);
+            border-radius: var(--radius-sm);
+            font-size: 0.95rem;
+            transition: var(--transition);
+            font-family: inherit;
+        }
+
+        .form-input:focus,
+        .form-select:focus,
+        .form-textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+            margin-top: 30px;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #6366f1);
+            color: white;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 0.8rem;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        /* Tables */
+        .table-container {
+            overflow-x: auto;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            background: white;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: linear-gradient(135deg, var(--dark), var(--darker));
+            color: white;
+        }
+
+        th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid var(--gray-light);
+        }
+
+        tbody tr {
+            transition: var(--transition);
+        }
+
+        tbody tr:hover {
+            background: #f8fafc;
+        }
+
+        /* Status Badges */
+        .badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .badge-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-warning {
+            background: #fed7aa;
+            color: #92400e;
+        }
+
+        .badge-danger {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge-info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .badge-purple {
+            background: #e0e7ff;
+            color: #3730a3;
+        }
+
+        .badge-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .badge-dot.green {
+            background: #10b981;
+        }
+
+        .badge-dot.red {
+            background: #ef4444;
+        }
+
+        .badge-dot.yellow {
+            background: #f59e0b;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
+            z-index: 2000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            border-radius: var(--radius);
+            padding: 30px;
+            max-width: 700px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--gray);
+            transition: var(--transition);
+        }
+
+        .modal-close:hover {
+            color: var(--danger);
+            transform: rotate(90deg);
+        }
+
+        /* Parking Grid */
+        .parking-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 15px;
+        }
+
+        .parking-spot {
+            background: white;
+            border-radius: var(--radius-sm);
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+            border: 2px solid transparent;
+            position: relative;
+        }
+
+        .parking-spot.available {
+            border-color: #10b981;
+            background: #f0fdf4;
+        }
+
+        .parking-spot.occupied {
+            border-color: #ef4444;
+            background: #fef2f2;
+        }
+
+        .parking-spot.reserved {
+            border-color: #f59e0b;
+            background: #fffbeb;
+        }
+
+        .parking-spot.preferred {
+            border-left: 4px solid #3b82f6;
+        }
+
+        .parking-spot:hover {
+            transform: scale(1.05);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .spot-number {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .spot-type {
+            font-size: 0.75rem;
+            color: var(--gray);
+            margin-bottom: 5px;
+        }
+
+        .spot-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        /* Alert */
+        .alert {
+            padding: 15px 20px;
+            border-radius: var(--radius-sm);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .alert-info {
+            background: #dbeafe;
+            color: #1e40af;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border-left: 4px solid #10b981;
+        }
+
+        .alert-warning {
+            background: #fed7aa;
+            color: #92400e;
+            border-left: 4px solid #f59e0b;
+        }
+
+        /* Chart Container */
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        /* Relatório */
+        .report-section {
+            margin-bottom: 30px;
+        }
+
+        .report-table {
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.mobile-open {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+                padding: 15px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .top-bar {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .search-box {
+                max-width: 100%;
+            }
+
+            .parking-grid {
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--light);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--gray);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--dark);
+        }
+
+        /* Utilities */
+        .mt-20 {
+            margin-top: 20px;
+        }
+
+        .mb-20 {
+            margin-bottom: 20px;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .font-bold {
+            font-weight: 700;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Loading Screen -->
+    <div class="loading-screen" id="loadingScreen">
+        <div style="text-align: center;">
+            <div class="loader-icon">🚗</div>
+            <div class="loader-text">Carregando SmartPark Pro...</div>
+        </div>
+    </div>
+
+    <!-- App Container -->
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <span class="sidebar-logo">🅿️</span>
+                <div class="sidebar-title">SmartPark Pro</div>
+                <div class="sidebar-subtitle">Sistema de Estacionamento</div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Principal</div>
+                    <a class="nav-item active" data-page="dashboard">
+                        <i class="fas fa-th-large"></i> Dashboard
+                    </a>
+                    <a class="nav-item" data-page="entrada-saida">
+                        <i class="fas fa-exchange-alt"></i> Entrada/Saída
+                    </a>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Cadastros</div>
+                    <a class="nav-item" data-page="clientes">
+                        <i class="fas fa-users"></i> Clientes
+                    </a>
+                    <a class="nav-item" data-page="veiculos">
+                        <i class="fas fa-car"></i> Veículos
+                    </a>
+                    <a class="nav-item" data-page="vagas">
+                        <i class="fas fa-parking"></i> Vagas
+                    </a>
+                    <a class="nav-item" data-page="precos">
+                        <i class="fas fa-dollar-sign"></i> Preços
+                    </a>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Relatórios</div>
+                    <a class="nav-item" data-page="relatorios">
+                        <i class="fas fa-chart-bar"></i> Relatórios
+                    </a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Buscar por placa, cliente ou vaga..." id="globalSearch">
+                </div>
+                <div class="user-menu">
+                    <div class="date-time-display">
+                        <div class="current-time" id="currentTime">00:00:00</div>
+                        <div class="current-date" id="currentDate">00/00/0000</div>
+                    </div>
+                    <div class="user-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Page -->
+            <div class="page active" id="dashboard-page">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon green">
+                                <i class="fas fa-parking"></i>
+                            </div>
+                            <span class="stat-trend up">Atualizado</span>
+                        </div>
+                        <div class="stat-value" id="vagasDisponiveis">32</div>
+                        <div class="stat-label">Vagas Disponíveis</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon blue">
+                                <i class="fas fa-car-side"></i>
+                            </div>
+                            <span class="stat-trend up">+12%</span>
+                        </div>
+                        <div class="stat-value" id="veiculosEstacionados">18</div>
+                        <div class="stat-label">Veículos Estacionados</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon orange">
+                                <i class="fas fa-hand-holding-usd"></i>
+                            </div>
+                            <span class="stat-trend up">+8%</span>
+                        </div>
+                        <div class="stat-value" id="faturamentoHoje">R$ 980,00</div>
+                        <div class="stat-label">Faturamento Hoje</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon purple">
+                                <i class="fas fa-user-check"></i>
+                            </div>
+                            <span class="stat-trend up">Ativo</span>
+                        </div>
+                        <div class="stat-value" id="clientesAtivos">245</div>
+                        <div class="stat-label">Clientes Cadastrados</div>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Ocupação do Estacionamento</h3>
+                            <div class="card-actions">
+                                <button class="btn btn-sm btn-primary" onclick="atualizarGrafico('hoje')">Hoje</button>
+                                <button class="btn btn-sm" onclick="atualizarGrafico('semana')">Semana</button>
+                                <button class="btn btn-sm" onclick="atualizarGrafico('mes')">Mês</button>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="ocupacaoChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Distribuição de Vagas</h3>
+                        </div>
+                        <div style="padding: 20px;">
+                            <div style="margin-bottom: 15px;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                    <span>Vagas Normais</span>
+                                    <span class="font-bold">30 vagas</span>
+                                </div>
+                                <div style="background: #e2e8f0; height: 8px; border-radius: 10px;">
+                                    <div style="background: #10b981; width: 60%; height: 100%; border-radius: 10px;">
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="margin-bottom: 15px;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                    <span>Vagas Preferenciais</span>
+                                    <span class="font-bold">15 vagas</span>
+                                </div>
+                                <div style="background: #e2e8f0; height: 8px; border-radius: 10px;">
+                                    <div style="background: #3b82f6; width: 80%; height: 100%; border-radius: 10px;">
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="margin-bottom: 15px;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                    <span>Idosos</span>
+                                    <span class="font-bold">5 vagas</span>
+                                </div>
+                                <div style="background: #e2e8f0; height: 8px; border-radius: 10px;">
+                                    <div style="background: #f59e0b; width: 40%; height: 100%; border-radius: 10px;">
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="margin-bottom: 15px;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                    <span>Gestantes</span>
+                                    <span class="font-bold">3 vagas</span>
+                                </div>
+                                <div style="background: #e2e8f0; height: 8px; border-radius: 10px;">
+                                    <div style="background: #6366f1; width: 33%; height: 100%; border-radius: 10px;">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Veículos Estacionados no Momento</h3>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Placa</th>
+                                    <th>Modelo/Marca</th>
+                                    <th>Cor</th>
+                                    <th>Vaga</th>
+                                    <th>Tipo Vaga</th>
+                                    <th>Entrada</th>
+                                    <th>Permanência</th>
+                                    <th>Valor Atual</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="veiculosEstacionadosTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Entrada/Saída Page -->
+            <div class="page" id="entrada-saida-page">
+                <div class="dashboard-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">🚗 Registrar Entrada</h3>
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label">Placa do Veículo *</label>
+                                <input type="text" class="form-input" id="entradaPlaca" placeholder="ABC-1234"
+                                    maxlength="8">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Tipo de Vaga</label>
+                                <select class="form-select" id="entradaTipoVaga">
+                                    <option value="normal">Normal</option>
+                                    <option value="preferencial">Preferencial</option>
+                                    <option value="idosa">Idoso</option>
+                                    <option value="gestante">Gestante</option>
+                                </select>
+                            </div>
+                            <div class="form-group full-width">
+                                <label class="form-label">Veículo (se já cadastrado)</label>
+                                <select class="form-select" id="entradaVeiculoCadastrado">
+                                    <option value="">Selecione ou digite a placa</option>
+                                </select>
+                            </div>
+                            <div class="form-group full-width">
+                                <button class="btn btn-primary" onclick="registrarEntrada()">
+                                    <i class="fas fa-sign-in-alt"></i> Registrar Entrada
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">🚙 Registrar Saída</h3>
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-group full-width">
+                                <label class="form-label">Placa do Veículo *</label>
+                                <input type="text" class="form-input" id="saidaPlaca" placeholder="ABC-1234">
+                            </div>
+                            <div class="form-group full-width">
+                                <button class="btn btn-warning" onclick="calcularSaida()">
+                                    <i class="fas fa-calculator"></i> Calcular Valor
+                                </button>
+                            </div>
+                        </div>
+                        <div id="saidaInfo" style="margin-top: 20px;"></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Últimos Registros</h3>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Placa</th>
+                                    <th>Veículo</th>
+                                    <th>Vaga</th>
+                                    <th>Entrada</th>
+                                    <th>Saída</th>
+                                    <th>Valor</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historicoTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Clientes Page -->
+            <div class="page" id="clientes-page">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Gerenciamento de Clientes</h3>
+                        <button class="btn btn-primary" onclick="abrirModalCliente()">
+                            <i class="fas fa-plus"></i> Novo Cliente
+                        </button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nome</th>
+                                    <th>CPF</th>
+                                    <th>Telefone</th>
+                                    <th>Email</th>
+                                    <th>Veículos</th>
+                                    <th>Cadastro</th>
+                                    <th>Status</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="clientesTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Veículos Page -->
+            <div class="page" id="veiculos-page">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Gerenciamento de Veículos</h3>
+                        <button class="btn btn-primary" onclick="abrirModalVeiculo()">
+                            <i class="fas fa-plus"></i> Novo Veículo
+                        </button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Placa</th>
+                                    <th>Modelo</th>
+                                    <th>Marca</th>
+                                    <th>Cor</th>
+                                    <th>Ano</th>
+                                    <th>Tipo</th>
+                                    <th>Tamanho</th>
+                                    <th>Proprietário</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="veiculosTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vagas Page -->
+            <div class="page" id="vagas-page">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Mapa de Vagas do Estacionamento</h3>
+                        <div class="card-actions">
+                            <span class="badge badge-success"><span class="badge-dot green"></span> Livre</span>
+                            <span class="badge badge-danger"><span class="badge-dot red"></span> Ocupada</span>
+                            <span class="badge badge-warning"><span class="badge-dot yellow"></span> Reservada</span>
+                            <span class="badge badge-info">🔵 Preferencial</span>
+                        </div>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <span>Total de vagas: <strong id="totalVagas">50</strong> | Disponíveis: <strong
+                                id="disponiveisVagas">32</strong> | Ocupadas: <strong
+                                id="ocupadasVagas">18</strong></span>
+                    </div>
+                    <div class="parking-grid" id="parkingGrid"></div>
+                </div>
+            </div>
+
+            <!-- Preços Page -->
+            <div class="page" id="precos-page">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Tabela de Preços</h3>
+                        <button class="btn btn-primary" onclick="abrirModalPreco()">
+                            <i class="fas fa-edit"></i> Atualizar Preços
+                        </button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Tipo Veículo</th>
+                                    <th>Tipo Vaga</th>
+                                    <th>1ª Hora</th>
+                                    <th>Hora Adicional</th>
+                                    <th>Diária</th>
+                                    <th>Mensal</th>
+                                    <th>Anual</th>
+                                    <th>Vigência</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="precosTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Relatórios Page -->
+            <div class="page" id="relatorios-page">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Relatórios Gerenciais</h3>
+                        <div class="card-actions">
+                            <button class="btn btn-success" onclick="imprimirRelatorio()">
+                                <i class="fas fa-print"></i> Imprimir
+                            </button>
+                            <button class="btn btn-primary" onclick="exportarRelatorio()">
+                                <i class="fas fa-download"></i> Exportar
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">Data Início</label>
+                            <input type="date" class="form-input" id="relDataInicio">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Data Fim</label>
+                            <input type="date" class="form-input" id="relDataFim">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Tipo de Relatório</label>
+                            <select class="form-select" id="tipoRelatorio">
+                                <option value="faturamento">Faturamento Detalhado</option>
+                                <option value="ocupacao">Taxa de Ocupação</option>
+                                <option value="clientes">Clientes Frequentes</option>
+                                <option value="veiculos">Rotatividade de Veículos</option>
+                                <option value="vagas">Utilização de Vagas</option>
+                                <option value="precos">Histórico de Preços</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary mt-20" onclick="gerarRelatorio()">
+                        <i class="fas fa-chart-line"></i> Gerar Relatório
+                    </button>
+                    <div id="relatorioResultado" class="mt-20"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Cliente -->
+    <div class="modal-overlay" id="modalCliente">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalClienteTitle">Cadastrar Cliente</h2>
+                <button class="modal-close" onclick="fecharModal('modalCliente')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="formCliente">
+                <input type="hidden" id="clienteId">
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label class="form-label">Nome Completo *</label>
+                        <input type="text" class="form-input" id="nomeCliente" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">CPF *</label>
+                        <input type="text" class="form-input" id="cpfCliente" placeholder="000.000.000-00" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Telefone</label>
+                        <input type="text" class="form-input" id="telefoneCliente" placeholder="(00) 00000-0000">
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-input" id="emailCliente">
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label">Endereço Completo</label>
+                        <textarea class="form-textarea" id="enderecoCliente"
+                            placeholder="Rua, número, bairro, cidade - UF"></textarea>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn" onclick="fecharModal('modalCliente')">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Salvar Cliente
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Veículo -->
+    <div class="modal-overlay" id="modalVeiculo">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalVeiculoTitle">Cadastrar Veículo</h2>
+                <button class="modal-close" onclick="fecharModal('modalVeiculo')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="formVeiculo">
+                <input type="hidden" id="veiculoId">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Placa *</label>
+                        <input type="text" class="form-input" id="placaVeiculo" placeholder="ABC-1234" maxlength="8"
+                            required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Modelo *</label>
+                        <input type="text" class="form-input" id="modeloVeiculo" placeholder="Ex: Civic, Corolla"
+                            required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Marca *</label>
+                        <input type="text" class="form-input" id="marcaVeiculo" placeholder="Ex: Honda, Toyota"
+                            required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Cor</label>
+                        <select class="form-select" id="corVeiculo">
+                            <option value="">Selecione a cor</option>
+                            <option value="Preto">Preto</option>
+                            <option value="Branco">Branco</option>
+                            <option value="Prata">Prata</option>
+                            <option value="Cinza">Cinza</option>
+                            <option value="Vermelho">Vermelho</option>
+                            <option value="Azul">Azul</option>
+                            <option value="Verde">Verde</option>
+                            <option value="Amarelo">Amarelo</option>
+                            <option value="Outra">Outra</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Ano</label>
+                        <input type="number" class="form-input" id="anoVeiculo" placeholder="Ex: 2024" min="1900"
+                            max="2025">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Tipo *</label>
+                        <select class="form-select" id="tipoVeiculo" required>
+                            <option value="">Selecione o tipo</option>
+                            <option value="carro">Carro</option>
+                            <option value="moto">Moto</option>
+                            <option value="caminhao">Caminhão</option>
+                            <option value="van">Van/SUV</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Tamanho *</label>
+                        <select class="form-select" id="tamanhoVeiculo" required>
+                            <option value="">Selecione o tamanho</option>
+                            <option value="pequeno">Pequeno</option>
+                            <option value="medio">Médio</option>
+                            <option value="grande">Grande</option>
+                        </select>
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label">Proprietário</label>
+                        <select class="form-select" id="clienteVeiculo">
+                            <option value="">Selecione um cliente</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn" onclick="fecharModal('modalVeiculo')">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Salvar Veículo
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Preço -->
+    <div class="modal-overlay" id="modalPreco">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Atualizar Preços</h2>
+                <button class="modal-close" onclick="fecharModal('modalPreco')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="formPreco">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Tipo de Veículo *</label>
+                        <select class="form-select" id="precoTipoVeiculo" required>
+                            <option value="carro">Carro</option>
+                            <option value="moto">Moto</option>
+                            <option value="caminhao">Caminhão</option>
+                            <option value="van">Van/SUV</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Tipo de Vaga *</label>
+                        <select class="form-select" id="precoTipoVaga" required>
+                            <option value="normal">Normal</option>
+                            <option value="preferencial">Preferencial</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">1ª Hora (R$) *</label>
+                        <input type="number" class="form-input" id="precoHora" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Hora Adicional (R$) *</label>
+                        <input type="number" class="form-input" id="precoHoraAdicional" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Diária (R$) *</label>
+                        <input type="number" class="form-input" id="precoDiaria" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Mensal (R$) *</label>
+                        <input type="number" class="form-input" id="precoMensal" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Anual (R$) *</label>
+                        <input type="number" class="form-input" id="precoAnual" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Data Vigência *</label>
+                        <input type="date" class="form-input" id="precoVigencia" required>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn" onclick="fecharModal('modalPreco')">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Salvar Preço
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // ============ SMART PARK PRO - SISTEMA COMPLETO ============
+
+        class SmartParkPro {
+            constructor() {
+                // Banco de dados em memória
+                this.db = {
+                    clientes: [
+                        { id: 1, nome: 'João Silva', cpf: '123.456.789-00', telefone: '(11) 99999-9999', email: 'joao@email.com', endereco: 'Rua A, 123 - Centro', dataCadastro: '2024-01-15', status: 'ativo' },
+                        { id: 2, nome: 'Maria Santos', cpf: '987.654.321-00', telefone: '(11) 98888-8888', email: 'maria@email.com', endereco: 'Av. B, 456 - Jardins', dataCadastro: '2024-02-20', status: 'ativo' },
+                        { id: 3, nome: 'Pedro Oliveira', cpf: '456.789.123-00', telefone: '(11) 97777-7777', email: 'pedro@email.com', endereco: 'Rua C, 789 - Bela Vista', dataCadastro: '2024-03-10', status: 'ativo' },
+                    ],
+                    veiculos: [
+                        { id: 1, placa: 'ABC-1234', modelo: 'Civic', marca: 'Honda', cor: 'Preto', ano: 2022, tipo: 'carro', tamanho: 'medio', clienteId: 1, proprietario: 'João Silva' },
+                        { id: 2, placa: 'DEF-5678', modelo: 'Corolla', marca: 'Toyota', cor: 'Prata', ano: 2023, tipo: 'carro', tamanho: 'medio', clienteId: 2, proprietario: 'Maria Santos' },
+                        { id: 3, placa: 'GHI-9012', modelo: 'CG 160', marca: 'Honda', cor: 'Vermelho', ano: 2024, tipo: 'moto', tamanho: 'pequeno', clienteId: 3, proprietario: 'Pedro Oliveira' },
+                    ],
+                    precos: [
+                        { id: 1, tipoVeiculo: 'carro', tipoVaga: 'normal', hora: 5.00, horaAdicional: 3.00, diaria: 30.00, mensal: 200.00, anual: 2000.00, vigencia: '2024-01-01' },
+                        { id: 2, tipoVeiculo: 'carro', tipoVaga: 'preferencial', hora: 8.00, horaAdicional: 5.00, diaria: 45.00, mensal: 300.00, anual: 3000.00, vigencia: '2024-01-01' },
+                        { id: 3, tipoVeiculo: 'moto', tipoVaga: 'normal', hora: 3.00, horaAdicional: 2.00, diaria: 18.00, mensal: 120.00, anual: 1200.00, vigencia: '2024-01-01' },
+                        { id: 4, tipoVeiculo: 'moto', tipoVaga: 'preferencial', hora: 5.00, horaAdicional: 3.00, diaria: 25.00, mensal: 180.00, anual: 1800.00, vigencia: '2024-01-01' },
+                        { id: 5, tipoVeiculo: 'caminhao', tipoVaga: 'normal', hora: 10.00, horaAdicional: 7.00, diaria: 60.00, mensal: 400.00, anual: 4000.00, vigencia: '2024-01-01' },
+                        { id: 6, tipoVeiculo: 'van', tipoVaga: 'normal', hora: 7.00, horaAdicional: 5.00, diaria: 40.00, mensal: 280.00, anual: 2800.00, vigencia: '2024-01-01' },
+                    ],
+                    estacionados: [],
+                    historico: [],
+                    vagas: []
+                };
+
+                this.gerarVagas();
+                this.init();
+            }
+
+            gerarVagas() {
+                const tipos = ['normal', 'preferencial', 'idosa', 'gestante'];
+                const setores = ['A', 'B', 'C', 'D', 'E'];
+                let contador = 1;
+
+                setores.forEach(setor => {
+                    for (let i = 1; i <= 10; i++) {
+                        const tipo = tipos[Math.floor(Math.random() * tipos.length)];
+                        const status = Math.random() > 0.4 ? 'available' : (Math.random() > 0.5 ? 'occupied' : 'reserved');
+
+                        this.db.vagas.push({
+                            id: contador,
+                            numero: `${setor}-${String(i).padStart(2, '0')}`,
+                            tipo: tipo,
+                            tamanho: tipo === 'normal' ? 'medio' : 'medio',
+                            status: status,
+                            setor: setor
+                        });
+                        contador++;
+                    }
+                });
+            }
+
+            init() {
+                this.setupNavigation();
+                this.setupForms();
+                this.setupSearch();
+                this.setupCharts();
+                this.loadAllData();
+                this.updateDateTime();
+
+                setInterval(() => this.updateDateTime(), 1000);
+
+                setTimeout(() => {
+                    document.getElementById('loadingScreen').classList.add('hidden');
+                }, 1500);
+            }
+
+            setupNavigation() {
+                document.querySelectorAll('.nav-item').forEach(item => {
+                    item.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const pageName = item.dataset.page;
+                        this.navigateTo(pageName);
+                    });
+                });
+            }
+
+            navigateTo(pageName) {
+                document.querySelectorAll('.nav-item').forEach(nav => {
+                    nav.classList.remove('active');
+                    if (nav.dataset.page === pageName) nav.classList.add('active');
+                });
+
+                document.querySelectorAll('.page').forEach(page => {
+                    page.classList.remove('active');
+                });
+
+                const pageElement = document.getElementById(`${pageName}-page`);
+                if (pageElement) {
+                    pageElement.classList.add('active');
+                    this.loadPageData(pageName);
+                }
+            }
+
+            loadPageData(pageName) {
+                switch (pageName) {
+                    case 'dashboard': this.loadDashboard(); break;
+                    case 'entrada-saida': this.loadEntradaSaida(); break;
+                    case 'clientes': this.loadClientes(); break;
+                    case 'veiculos': this.loadVeiculos(); break;
+                    case 'vagas': this.loadVagas(); break;
+                    case 'precos': this.loadPrecos(); break;
+                    case 'relatorios': break;
+                }
+            }
+
+            loadAllData() {
+                this.loadDashboard();
+                this.loadVagas();
+                this.loadClientes();
+                this.loadVeiculos();
+                this.loadPrecos();
+            }
+
+            updateDateTime() {
+                const now = new Date();
+                document.getElementById('currentTime').textContent = now.toLocaleTimeString('pt-BR');
+                document.getElementById('currentDate').textContent = now.toLocaleDateString('pt-BR', {
+                    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+                });
+            }
+
+            setupCharts() {
+                const ctx = document.getElementById('ocupacaoChart')?.getContext('2d');
+                if (!ctx) return;
+
+                this.ocupacaoChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: ['06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00'],
+                        datasets: [{
+                            label: 'Veículos Estacionados',
+                            data: [5, 15, 25, 35, 30, 28, 20, 12, 5],
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+                            x: { grid: { display: false } }
+                        }
+                    }
+                });
+            }
+
+            setupSearch() {
+                const searchInput = document.getElementById('globalSearch');
+                if (searchInput) {
+                    searchInput.addEventListener('input', (e) => {
+                        const query = e.target.value.toLowerCase();
+                        this.buscarGlobal(query);
+                    });
+                }
+            }
+
+            buscarGlobal(query) {
+                if (!query) return;
+
+                // Buscar nos veículos
+                const veiculoEncontrado = this.db.veiculos.find(v =>
+                    v.placa.toLowerCase().includes(query) ||
+                    v.modelo.toLowerCase().includes(query)
+                );
+
+                // Buscar nos clientes
+                const clienteEncontrado = this.db.clientes.find(c =>
+                    c.nome.toLowerCase().includes(query) ||
+                    c.cpf.includes(query)
+                );
+
+                if (veiculoEncontrado) {
+                    alert(`Veículo encontrado:\nPlaca: ${veiculoEncontrado.placa}\nModelo: ${veiculoEncontrado.modelo}\nProprietário: ${veiculoEncontrado.proprietario}`);
+                } else if (clienteEncontrado) {
+                    alert(`Cliente encontrado:\nNome: ${clienteEncontrado.nome}\nCPF: ${clienteEncontrado.cpf}\nTelefone: ${clienteEncontrado.telefone}`);
+                }
+            }
+
+            setupForms() {
+                // Form Cliente
+                document.getElementById('formCliente')?.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.salvarCliente();
+                });
+
+                // Form Veículo
+                document.getElementById('formVeiculo')?.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.salvarVeiculo();
+                });
+
+                // Form Preço
+                document.getElementById('formPreco')?.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.salvarPreco();
+                });
+            }
+
+            // ============ DASHBOARD ============
+            loadDashboard() {
+                const vagasDisponiveis = this.db.vagas.filter(v => v.status === 'available').length;
+                const veiculosEstacionados = this.db.estacionados.length;
+                const faturamentoHoje = this.db.historico
+                    .filter(h => new Date(h.dataSaida).toDateString() === new Date().toDateString())
+                    .reduce((sum, h) => sum + h.valor, 0);
+
+                document.getElementById('vagasDisponiveis').textContent = vagasDisponiveis;
+                document.getElementById('veiculosEstacionados').textContent = veiculosEstacionados;
+                document.getElementById('faturamentoHoje').textContent = `R$ ${faturamentoHoje.toFixed(2)}`;
+                document.getElementById('clientesAtivos').textContent = this.db.clientes.filter(c => c.status === 'ativo').length;
+
+                this.carregarVeiculosEstacionados();
+            }
+
+            carregarVeiculosEstacionados() {
+                const tbody = document.getElementById('veiculosEstacionadosTable');
+                if (!tbody) return;
+
+                if (this.db.estacionados.length === 0) {
+                    // Dados de exemplo
+                    const exemploEstacionados = [
+                        { placa: 'ABC-1234', modelo: 'Honda Civic', cor: 'Preto', vaga: 'A-05', tipoVaga: 'Normal', entrada: new Date(Date.now() - 7200000) },
+                        { placa: 'JKL-3456', modelo: 'Fiat Uno', cor: 'Branco', vaga: 'B-12', tipoVaga: 'Preferencial', entrada: new Date(Date.now() - 3600000) },
+                        { placa: 'MNO-7890', modelo: 'VW Gol', cor: 'Prata', vaga: 'C-03', tipoVaga: 'Idoso', entrada: new Date(Date.now() - 10800000) },
+                    ];
+
+                    tbody.innerHTML = exemploEstacionados.map(v => {
+                        const permanencia = Math.floor((Date.now() - v.entrada) / 3600000);
+                        const valorEstimado = (permanencia * 5).toFixed(2);
+
+                        return `
+                            <tr>
+                                <td><strong>${v.placa}</strong></td>
+                                <td>${v.modelo}</td>
+                                <td>${v.cor}</td>
+                                <td><span class="badge badge-info">${v.vaga}</span></td>
+                                <td><span class="badge ${v.tipoVaga === 'Preferencial' ? 'badge-purple' : 'badge-info'}">${v.tipoVaga}</span></td>
+                                <td>${v.entrada.toLocaleTimeString('pt-BR')}</td>
+                                <td>${permanencia}h</td>
+                                <td><strong>R$ ${valorEstimado}</strong></td>
+                                <td>
+                                    <button class="btn btn-sm btn-warning" onclick="app.registrarSaidaVeiculo('${v.placa}')">
+                                        <i class="fas fa-sign-out-alt"></i> Saída
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+            }
+
+            // ============ ENTRADA/SAÍDA ============
+            loadEntradaSaida() {
+                this.carregarHistorico();
+            }
+
+            registrarEntrada() {
+                const placa = document.getElementById('entradaPlaca').value.toUpperCase();
+                const tipoVaga = document.getElementById('entradaTipoVaga').value;
+
+                if (!placa) {
+                    alert('Por favor, insira a placa do veículo!');
+                    return;
+                }
+
+                // Verificar se veículo já está cadastrado
+                const veiculo = this.db.veiculos.find(v => v.placa === placa);
+
+                // Verificar se há vaga disponível
+                const vagaDisponivel = this.db.vagas.find(v =>
+                    v.status === 'available' && v.tipo === tipoVaga
+                );
+
+                if (!vagaDisponivel) {
+                    alert(`Não há vagas disponíveis do tipo "${tipoVaga}"!`);
+                    return;
+                }
+
+                // Registrar entrada
+                const entrada = {
+                    placa: placa,
+                    modelo: veiculo ? veiculo.modelo : 'Não cadastrado',
+                    cor: veiculo ? veiculo.cor : 'Não informada',
+                    vaga: vagaDisponivel.numero,
+                    tipoVaga: tipoVaga,
+                    entrada: new Date(),
+                    status: 'em_andamento'
+                };
+
+                this.db.estacionados.push(entrada);
+                vagaDisponivel.status = 'occupied';
+
+                alert(`✅ Entrada registrada com sucesso!\nPlaca: ${placa}\nVaga: ${vagaDisponivel.numero}\nTipo: ${tipoVaga}\nHorário: ${entrada.entrada.toLocaleTimeString('pt-BR')}`);
+
+                document.getElementById('entradaPlaca').value = '';
+                this.loadDashboard();
+                this.loadVagas();
+            }
+
+            calcularSaida() {
+                const placa = document.getElementById('saidaPlaca').value.toUpperCase();
+
+                if (!placa) {
+                    alert('Por favor, insira a placa do veículo!');
+                    return;
+                }
+
+                // Procurar veículo estacionado
+                const index = this.db.estacionados.findIndex(e => e.placa === placa);
+
+                if (index === -1) {
+                    // Simular para demonstração
+                    const valorSimulado = (Math.random() * 50 + 10).toFixed(2);
+                    document.getElementById('saidaInfo').innerHTML = `
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Veículo não encontrado nos registros atuais. Simulação:
+                        </div>
+                        <div class="card">
+                            <div style="padding: 20px;">
+                                <p><strong>Placa:</strong> ${placa}</p>
+                                <p><strong>Entrada simulada:</strong> ${new Date(Date.now() - 7200000).toLocaleTimeString('pt-BR')}</p>
+                                <p><strong>Saída:</strong> ${new Date().toLocaleTimeString('pt-BR')}</p>
+                                <p><strong>Permanência:</strong> 2 horas</p>
+                                <p style="font-size: 1.5rem; color: #10b981; font-weight: bold;">Valor: R$ ${valorSimulado}</p>
+                                <button class="btn btn-success mt-20" onclick="app.confirmarSaida('${placa}', ${valorSimulado})">
+                                    <i class="fas fa-check"></i> Confirmar Pagamento
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const entrada = this.db.estacionados[index];
+                const permanenciaMs = Date.now() - entrada.entrada.getTime();
+                const permanenciaHoras = Math.ceil(permanenciaMs / 3600000);
+
+                // Buscar preço baseado no tipo de veículo e vaga
+                const veiculo = this.db.veiculos.find(v => v.placa === placa);
+                const preco = this.db.precos.find(p =>
+                    p.tipoVeiculo === (veiculo ? veiculo.tipo : 'carro') &&
+                    p.tipoVaga === entrada.tipoVaga
+                );
+
+                let valorTotal = 0;
+                if (preco) {
+                    valorTotal = preco.hora;
+                    if (permanenciaHoras > 1) {
+                        valorTotal += (permanenciaHoras - 1) * preco.horaAdicional;
+                    }
+                    // Verificar se ultrapassa diária
+                    if (valorTotal > preco.diaria) valorTotal = preco.diaria;
+                } else {
+                    valorTotal = permanenciaHoras * 5; // Valor padrão
+                }
+
+                document.getElementById('saidaInfo').innerHTML = `
+                    <div class="card" style="border-left: 4px solid #10b981;">
+                        <div style="padding: 20px;">
+                            <h3 style="color: #10b981; margin-bottom: 20px;">✅ Cálculo da Saída</h3>
+                            <p><strong>Placa:</strong> ${placa}</p>
+                            <p><strong>Veículo:</strong> ${entrada.modelo}</p>
+                            <p><strong>Vaga:</strong> ${entrada.vaga} (${entrada.tipoVaga})</p>
+                            <p><strong>Entrada:</strong> ${entrada.entrada.toLocaleString('pt-BR')}</p>
+                            <p><strong>Saída:</strong> ${new Date().toLocaleString('pt-BR')}</p>
+                            <p><strong>Permanência:</strong> ${permanenciaHoras} hora(s)</p>
+                            <hr style="margin: 20px 0;">
+                            <p style="font-size: 2rem; color: #10b981; font-weight: bold; text-align: center;">
+                                R$ ${valorTotal.toFixed(2)}
+                            </p>
+                            <button class="btn btn-success mt-20" style="width: 100%;" onclick="app.confirmarSaida('${placa}', ${valorTotal})">
+                                <i class="fas fa-check"></i> Confirmar Pagamento e Liberar Vaga
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            confirmarSaida(placa, valor) {
+                // Remover dos estacionados
+                const index = this.db.estacionados.findIndex(e => e.placa === placa);
+                if (index !== -1) {
+                    const entrada = this.db.estacionados[index];
+
+                    // Adicionar ao histórico
+                    this.db.historico.push({
+                        ...entrada,
+                        dataSaida: new Date(),
+                        valor: valor,
+                        status: 'finalizado'
+                    });
+
+                    // Liberar vaga
+                    const vaga = this.db.vagas.find(v => v.numero === entrada.vaga);
+                    if (vaga) vaga.status = 'available';
+
+                    // Remover dos estacionados
+                    this.db.estacionados.splice(index, 1);
+                }
+
+                alert(`✅ Saída registrada com sucesso!\nValor pago: R$ ${valor.toFixed(2)}`);
+
+                document.getElementById('saidaPlaca').value = '';
+                document.getElementById('saidaInfo').innerHTML = '';
+
+                this.loadDashboard();
+                this.loadVagas();
+                this.carregarHistorico();
+            }
+
+            registrarSaidaVeiculo(placa) {
+                document.getElementById('saidaPlaca').value = placa;
+                this.navigateTo('entrada-saida');
+                setTimeout(() => this.calcularSaida(), 500);
+            }
+
+            carregarHistorico() {
+                const tbody = document.getElementById('historicoTable');
+                if (!tbody) return;
+
+                const exemploHistorico = [
+                    { placa: 'ABC-1234', modelo: 'Honda Civic', vaga: 'A-05', entrada: new Date(Date.now() - 14400000), saida: new Date(Date.now() - 7200000), valor: 25.00, status: 'finalizado' },
+                    { placa: 'DEF-5678', modelo: 'Toyota Corolla', vaga: 'B-12', entrada: new Date(Date.now() - 18000000), saida: new Date(Date.now() - 10800000), valor: 18.00, status: 'finalizado' },
+                    { placa: 'GHI-9012', modelo: 'Honda CG 160', vaga: 'C-03', entrada: new Date(Date.now() - 21600000), saida: new Date(Date.now() - 14400000), valor: 12.00, status: 'finalizado' },
+                ];
+
+                tbody.innerHTML = exemploHistorico.map(h => `
+                    <tr>
+                        <td><strong>${h.placa}</strong></td>
+                        <td>${h.modelo}</td>
+                        <td><span class="badge badge-info">${h.vaga}</span></td>
+                        <td>${h.entrada.toLocaleTimeString('pt-BR')}</td>
+                        <td>${h.saida.toLocaleTimeString('pt-BR')}</td>
+                        <td><strong>R$ ${h.valor.toFixed(2)}</strong></td>
+                        <td><span class="badge badge-success">Finalizado</span></td>
+                    </tr>
+                `).join('');
+            }
+
+            // ============ CLIENTES ============
+            loadClientes() {
+                const tbody = document.getElementById('clientesTable');
+                if (!tbody) return;
+
+                tbody.innerHTML = this.db.clientes.map(c => `
+                    <tr>
+                        <td>#${c.id}</td>
+                        <td><strong>${c.nome}</strong></td>
+                        <td>${c.cpf}</td>
+                        <td>${c.telefone}</td>
+                        <td>${c.email}</td>
+                        <td><span class="badge badge-info">${this.db.veiculos.filter(v => v.clienteId === c.id).length} veículo(s)</span></td>
+                        <td>${new Date(c.dataCadastro).toLocaleDateString('pt-BR')}</td>
+                        <td><span class="badge ${c.status === 'ativo' ? 'badge-success' : 'badge-danger'}">${c.status}</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-warning" onclick="app.editarCliente(${c.id})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="app.excluirCliente(${c.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+
+            salvarCliente() {
+                const id = document.getElementById('clienteId').value;
+                const cliente = {
+                    nome: document.getElementById('nomeCliente').value,
+                    cpf: document.getElementById('cpfCliente').value,
+                    telefone: document.getElementById('telefoneCliente').value,
+                    email: document.getElementById('emailCliente').value,
+                    endereco: document.getElementById('enderecoCliente').value,
+                };
+
+                if (id) {
+                    // Editar
+                    const index = this.db.clientes.findIndex(c => c.id === parseInt(id));
+                    if (index !== -1) {
+                        this.db.clientes[index] = { ...this.db.clientes[index], ...cliente };
+                    }
+                } else {
+                    // Novo
+                    cliente.id = this.db.clientes.length + 1;
+                    cliente.dataCadastro = new Date().toISOString().split('T')[0];
+                    cliente.status = 'ativo';
+                    this.db.clientes.push(cliente);
+                }
+
+                alert('✅ Cliente salvo com sucesso!');
+                fecharModal('modalCliente');
+                this.loadClientes();
+            }
+
+            editarCliente(id) {
+                const cliente = this.db.clientes.find(c => c.id === id);
+                if (!cliente) return;
+
+                document.getElementById('modalClienteTitle').textContent = 'Editar Cliente';
+                document.getElementById('clienteId').value = cliente.id;
+                document.getElementById('nomeCliente').value = cliente.nome;
+                document.getElementById('cpfCliente').value = cliente.cpf;
+                document.getElementById('telefoneCliente').value = cliente.telefone;
+                document.getElementById('emailCliente').value = cliente.email;
+                document.getElementById('enderecoCliente').value = cliente.endereco;
+
+                document.getElementById('modalCliente').classList.add('active');
+            }
+
+            excluirCliente(id) {
+                if (confirm('Tem certeza que deseja excluir este cliente? Todos os veículos vinculados também serão removidos.')) {
+                    this.db.clientes = this.db.clientes.filter(c => c.id !== id);
+                    this.db.veiculos = this.db.veiculos.filter(v => v.clienteId !== id);
+                    alert('✅ Cliente excluído com sucesso!');
+                    this.loadClientes();
+                    this.loadVeiculos();
+                }
+            }
+
+            // ============ VEÍCULOS ============
+            loadVeiculos() {
+                const tbody = document.getElementById('veiculosTable');
+                if (!tbody) return;
+
+                tbody.innerHTML = this.db.veiculos.map(v => `
+                    <tr>
+                        <td><strong>${v.placa}</strong></td>
+                        <td>${v.modelo}</td>
+                        <td>${v.marca}</td>
+                        <td>${v.cor}</td>
+                        <td>${v.ano}</td>
+                        <td><span class="badge badge-info">${v.tipo}</span></td>
+                        <td><span class="badge badge-purple">${v.tamanho}</span></td>
+                        <td>${v.proprietario}</td>
+                        <td>
+                            <button class="btn btn-sm btn-warning" onclick="app.editarVeiculo(${v.id})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="app.excluirVeiculo(${v.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+
+            salvarVeiculo() {
+                const id = document.getElementById('veiculoId').value;
+                const clienteId = document.getElementById('clienteVeiculo').value;
+                const cliente = this.db.clientes.find(c => c.id === parseInt(clienteId));
+
+                const veiculo = {
+                    placa: document.getElementById('placaVeiculo').value.toUpperCase(),
+                    modelo: document.getElementById('modeloVeiculo').value,
+                    marca: document.getElementById('marcaVeiculo').value,
+                    cor: document.getElementById('corVeiculo').value,
+                    ano: document.getElementById('anoVeiculo').value,
+                    tipo: document.getElementById('tipoVeiculo').value,
+                    tamanho: document.getElementById('tamanhoVeiculo').value,
+                    clienteId: clienteId ? parseInt(clienteId) : null,
+                    proprietario: cliente ? cliente.nome : 'Não atribuído'
+                };
+
+                if (id) {
+                    const index = this.db.veiculos.findIndex(v => v.id === parseInt(id));
+                    if (index !== -1) {
+                        this.db.veiculos[index] = { ...this.db.veiculos[index], ...veiculo };
+                    }
+                } else {
+                    veiculo.id = this.db.veiculos.length + 1;
+                    this.db.veiculos.push(veiculo);
+                }
+
+                alert('✅ Veículo salvo com sucesso!');
+                fecharModal('modalVeiculo');
+                this.loadVeiculos();
+            }
+
+            editarVeiculo(id) {
+                const veiculo = this.db.veiculos.find(v => v.id === id);
+                if (!veiculo) return;
+
+                document.getElementById('modalVeiculoTitle').textContent = 'Editar Veículo';
+                document.getElementById('veiculoId').value = veiculo.id;
+                document.getElementById('placaVeiculo').value = veiculo.placa;
+                document.getElementById('modeloVeiculo').value = veiculo.modelo;
+                document.getElementById('marcaVeiculo').value = veiculo.marca;
+                document.getElementById('corVeiculo').value = veiculo.cor;
+                document.getElementById('anoVeiculo').value = veiculo.ano;
+                document.getElementById('tipoVeiculo').value = veiculo.tipo;
+                document.getElementById('tamanhoVeiculo').value = veiculo.tamanho;
+                document.getElementById('clienteVeiculo').value = veiculo.clienteId || '';
+
+                document.getElementById('modalVeiculo').classList.add('active');
+            }
+
+            excluirVeiculo(id) {
+                if (confirm('Tem certeza que deseja excluir este veículo?')) {
+                    this.db.veiculos = this.db.veiculos.filter(v => v.id !== id);
+                    alert('✅ Veículo excluído com sucesso!');
+                    this.loadVeiculos();
+                }
+            }
+
+            // ============ VAGAS ============
+            loadVagas() {
+                const grid = document.getElementById('parkingGrid');
+                if (!grid) return;
+
+                const disponiveis = this.db.vagas.filter(v => v.status === 'available').length;
+                const ocupadas = this.db.vagas.filter(v => v.status === 'occupied').length;
+
+                document.getElementById('totalVagas').textContent = this.db.vagas.length;
+                document.getElementById('disponiveisVagas').textContent = disponiveis;
+                document.getElementById('ocupadasVagas').textContent = ocupadas;
+
+                grid.innerHTML = this.db.vagas.map(vaga => {
+                    let icon = '🟢';
+                    if (vaga.status === 'occupied') icon = '🔴';
+                    else if (vaga.status === 'reserved') icon = '🟡';
+
+                    let preferredClass = '';
+                    if (vaga.tipo === 'preferencial' || vaga.tipo === 'idosa' || vaga.tipo === 'gestante') {
+                        preferredClass = 'preferred';
+                    }
+
+                    return `
+                        <div class="parking-spot ${vaga.status} ${preferredClass}" onclick="app.clicarVaga('${vaga.numero}', '${vaga.tipo}', '${vaga.status}')">
+                            <div class="spot-icon">${icon}</div>
+                            <div class="spot-number">${vaga.numero}</div>
+                            <div class="spot-type">${vaga.tipo}</div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            clicarVaga(numero, tipo, status) {
+                const statusMap = {
+                    'available': 'Livre',
+                    'occupied': 'Ocupada',
+                    'reserved': 'Reservada'
+                };
+
+                const mensagem = `Vaga: ${numero}\nTipo: ${tipo}\nStatus: ${statusMap[status]}`;
+
+                if (status === 'available') {
+                    if (confirm(`${mensagem}\n\nDeseja registrar uma entrada nesta vaga?`)) {
+                        document.getElementById('entradaPlaca').focus();
+                        this.navigateTo('entrada-saida');
+                    }
+                } else {
+                    alert(mensagem);
+                }
+            }
+
+            // ============ PREÇOS ============
+            loadPrecos() {
+                const tbody = document.getElementById('precosTable');
+                if (!tbody) return;
+
+                tbody.innerHTML = this.db.precos.map(p => `
+                    <tr>
+                        <td><span class="badge badge-info">${p.tipoVeiculo}</span></td>
+                        <td><span class="badge ${p.tipoVaga === 'preferencial' ? 'badge-purple' : 'badge-info'}">${p.tipoVaga}</span></td>
+                        <td><strong>R$ ${p.hora.toFixed(2)}</strong></td>
+                        <td>R$ ${p.horaAdicional.toFixed(2)}</td>
+                        <td>R$ ${p.diaria.toFixed(2)}</td>
+                        <td>R$ ${p.mensal.toFixed(2)}</td>
+                        <td>R$ ${p.anual.toFixed(2)}</td>
+                        <td>${new Date(p.vigencia).toLocaleDateString('pt-BR')}</td>
+                        <td>
+                            <button class="btn btn-sm btn-warning" onclick="app.editarPreco(${p.id})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+
+            salvarPreco() {
+                const preco = {
+                    tipoVeiculo: document.getElementById('precoTipoVeiculo').value,
+                    tipoVaga: document.getElementById('precoTipoVaga').value,
+                    hora: parseFloat(document.getElementById('precoHora').value),
+                    horaAdicional: parseFloat(document.getElementById('precoHoraAdicional').value),
+                    diaria: parseFloat(document.getElementById('precoDiaria').value),
+                    mensal: parseFloat(document.getElementById('precoMensal').value),
+                    anual: parseFloat(document.getElementById('precoAnual').value),
+                    vigencia: document.getElementById('precoVigencia').value,
+                };
+
+                preco.id = this.db.precos.length + 1;
+                this.db.precos.push(preco);
+
+                alert('✅ Preços atualizados com sucesso!');
+                fecharModal('modalPreco');
+                this.loadPrecos();
+            }
+
+            editarPreco(id) {
+                const preco = this.db.precos.find(p => p.id === id);
+                if (!preco) return;
+
+                document.getElementById('precoTipoVeiculo').value = preco.tipoVeiculo;
+                document.getElementById('precoTipoVaga').value = preco.tipoVaga;
+                document.getElementById('precoHora').value = preco.hora;
+                document.getElementById('precoHoraAdicional').value = preco.horaAdicional;
+                document.getElementById('precoDiaria').value = preco.diaria;
+                document.getElementById('precoMensal').value = preco.mensal;
+                document.getElementById('precoAnual').value = preco.anual;
+                document.getElementById('precoVigencia').value = preco.vigencia;
+
+                document.getElementById('modalPreco').classList.add('active');
+            }
+
+            // ============ RELATÓRIOS ============
+            gerarRelatorio() {
+                const tipo = document.getElementById('tipoRelatorio').value;
+                const dataInicio = document.getElementById('relDataInicio').value;
+                const dataFim = document.getElementById('relDataFim').value;
+
+                let html = '';
+
+                switch (tipo) {
+                    case 'faturamento':
+                        html = this.gerarRelatorioFaturamento(dataInicio, dataFim);
+                        break;
+                    case 'ocupacao':
+                        html = this.gerarRelatorioOcupacao();
+                        break;
+                    case 'clientes':
+                        html = this.gerarRelatorioClientes();
+                        break;
+                    case 'veiculos':
+                        html = this.gerarRelatorioVeiculos();
+                        break;
+                    case 'vagas':
+                        html = this.gerarRelatorioVagas();
+                        break;
+                    case 'precos':
+                        html = this.gerarRelatorioPrecos();
+                        break;
+                }
+
+                document.getElementById('relatorioResultado').innerHTML = html;
+            }
+
+            gerarRelatorioFaturamento(dataInicio, dataFim) {
+                const faturamentoTotal = this.db.historico.reduce((sum, h) => sum + h.valor, 0) + 1250;
+
+                return `
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">📊 Relatório de Faturamento</h3>
+                        </div>
+                        <div style="padding: 20px;">
+                            <div class="alert alert-success">
+                                <i class="fas fa-chart-line"></i>
+                                <strong>Faturamento Total no Período: R$ ${faturamentoTotal.toFixed(2)}</strong>
+                            </div>
+                            <table class="report-table">
+                                <thead>
+                                    <tr>
+                                        <th>Data</th>
+                                        <th>Entradas</th>
+                                        <th>Saídas</th>
+                                        <th>Faturamento</th>
+                                        <th>Média/Veículo</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td>2024-01-15</td><td>25</td><td>23</td><td>R$ 450,00</td><td>R$ 19,57</td></tr>
+                                    <tr><td>2024-01-16</td><td>30</td><td>28</td><td>R$ 520,00</td><td>R$ 18,57</td></tr>
+                                    <tr><td>2024-01-17</td><td>22</td><td>24</td><td>R$ 380,00</td><td>R$ 15,83</td></tr>
+                                    <tr style="font-weight: bold; background: #f0fdf4;">
+                                        <td>Total</td><td>77</td><td>75</td><td>R$ 1.350,00</td><td>R$ 18,00</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            }
+
+            gerarRelatorioOcupacao() {
+                return `
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">📈 Relatório de Ocupação</h3>
+                        </div>
+                        <div style="padding: 20px;">
+                            <div class="alert alert-info">
+                                <i class="fas fa-parking"></i>
+                                <strong>Taxa de Ocupação Média: 65%</strong>
+                            </div>
+                            <table class="report-table">
+                                <thead>
+                                    <tr><th>Horário</th><th>Ocupação</th><th>Vagas Livres</th><th>Taxa</th></tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td>06:00-08:00</td><td>5</td><td>45</td><td>10%</td></tr>
+                                    <tr><td>08:00-12:00</td><td>35</td><td>15</td><td>70%</td></tr>
+                                    <tr><td>12:00-18:00</td><td>40</td><td>10</td><td>80%</td></tr>
+                                    <tr><td>18:00-22:00</td><td>20</td><td>30</td><td>40%</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            }
+
+            gerarRelatorioClientes() {
+                return `
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">👥 Relatório de Clientes Frequentes</h3>
+                        </div>
+                        <div style="padding: 20px;">
+                            <table class="report-table">
+                                <thead>
+                                    <tr><th>Cliente</th><th>Veículos</th><th>Visitas/Mês</th><th>Gasto Mensal</th></tr>
+                                </thead>
+                                <tbody>
+                                    ${this.db.clientes.map(c => `
+                                        <tr>
+                                            <td><strong>${c.nome}</strong></td>
+                                            <td>${this.db.veiculos.filter(v => v.clienteId === c.id).length}</td>
+                                            <td>${Math.floor(Math.random() * 20) + 5}</td>
+                                            <td>R$ ${(Math.random() * 200 + 50).toFixed(2)}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            }
+
+            gerarRelatorioVeiculos() {
+                return `
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">🚗 Relatório de Rotatividade de Veículos</h3>
+                        </div>
+                        <div style="padding: 20px;">
+                            <table class="report-table">
+                                <thead>
+                                    <tr><th>Placa</th><th>Veículo</th><th>Entradas/Mês</th><th>Média Permanência</th></tr>
+                                </thead>
+                                <tbody>
+                                    ${this.db.veiculos.map(v => `
+                                        <tr>
+                                            <td><strong>${v.placa}</strong></td>
+                                            <td>${v.marca} ${v.modelo}</td>
+                                            <td>${Math.floor(Math.random() * 15) + 3}</td>
+                                            <td>${Math.floor(Math.random() * 4) + 1}h</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            }
+
+            gerarRelatorioVagas() {
+                const vagasPorTipo = {};
+                this.db.vagas.forEach(v => {
+                    if (!vagasPorTipo[v.tipo]) vagasPorTipo[v.tipo] = { total: 0, ocupadas: 0 };
+                    vagasPorTipo[v.tipo].total++;
+                    if (v.status === 'occupied') vagasPorTipo[v.tipo].ocupadas++;
+                });
+
+                return `
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">🅿️ Relatório de Utilização de Vagas</h3>
+                        </div>
+                        <div style="padding: 20px;">
+                            <table class="report-table">
+                                <thead>
+                                    <tr><th>Tipo de Vaga</th><th>Total</th><th>Ocupadas</th><th>Disponíveis</th><th>Taxa Ocupação</th></tr>
+                                </thead>
+                                <tbody>
+                                    ${Object.entries(vagasPorTipo).map(([tipo, dados]) => `
+                                        <tr>
+                                            <td><span class="badge badge-info">${tipo}</span></td>
+                                            <td>${dados.total}</td>
+                                            <td>${dados.ocupadas}</td>
+                                            <td>${dados.total - dados.ocupadas}</td>
+                                            <td>${((dados.ocupadas / dados.total) * 100).toFixed(1)}%</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            }
+
+            gerarRelatorioPrecos() {
+                return `
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">💰 Histórico de Preços</h3>
+                        </div>
+                        <div style="padding: 20px;">
+                            <table class="report-table">
+                                <thead>
+                                    <tr><th>Tipo</th><th>Vaga</th><th>Hora</th><th>Diária</th><th>Mensal</th><th>Anual</th><th>Vigência</th></tr>
+                                </thead>
+                                <tbody>
+                                    ${this.db.precos.map(p => `
+                                        <tr>
+                                            <td>${p.tipoVeiculo}</td>
+                                            <td>${p.tipoVaga}</td>
+                                            <td>R$ ${p.hora.toFixed(2)}</td>
+                                            <td>R$ ${p.diaria.toFixed(2)}</td>
+                                            <td>R$ ${p.mensal.toFixed(2)}</td>
+                                            <td>R$ ${p.anual.toFixed(2)}</td>
+                                            <td>${new Date(p.vigencia).toLocaleDateString('pt-BR')}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // ============ FUNÇÕES GLOBAIS ============
+
+        function abrirModalCliente() {
+            document.getElementById('modalClienteTitle').textContent = 'Cadastrar Cliente';
+            document.getElementById('formCliente').reset();
+            document.getElementById('clienteId').value = '';
+            document.getElementById('modalCliente').classList.add('active');
+        }
+
+        function abrirModalVeiculo() {
+            document.getElementById('modalVeiculoTitle').textContent = 'Cadastrar Veículo';
+            document.getElementById('formVeiculo').reset();
+            document.getElementById('veiculoId').value = '';
+
+            // Carregar clientes no select
+            const select = document.getElementById('clienteVeiculo');
+            select.innerHTML = '<option value="">Selecione um cliente</option>' +
+                app.db.clientes.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+
+            document.getElementById('modalVeiculo').classList.add('active');
+        }
+
+        function abrirModalPreco() {
+            document.getElementById('formPreco').reset();
+            document.getElementById('modalPreco').classList.add('active');
+        }
+
+        function fecharModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        function registrarEntrada() {
+            app.registrarEntrada();
+        }
+
+        function calcularSaida() {
+            app.calcularSaida();
+        }
+
+        function gerarRelatorio() {
+            app.gerarRelatorio();
+        }
+
+        function atualizarGrafico(periodo) {
+            const dados = {
+                'hoje': [5, 15, 25, 35, 30, 28, 20, 12, 5],
+                'semana': [8, 12, 20, 28, 32, 25, 18, 15, 10],
+                'mes': [10, 18, 22, 30, 35, 28, 22, 15, 8]
+            };
+
+            if (app.ocupacaoChart) {
+                app.ocupacaoChart.data.datasets[0].data = dados[periodo];
+                app.ocupacaoChart.update();
+            }
+        }
+
+        function imprimirRelatorio() {
+            window.print();
+        }
+
+        function exportarRelatorio() {
+            alert('📥 Funcionalidade de exportação: O relatório será exportado em PDF.');
+        }
+
+        // Inicializar aplicação
+        const app = new SmartParkPro();
+
+        // Fechar modais ao clicar fora
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    overlay.classList.remove('active');
+                }
+            });
+        });
+
+        console.log('🚗 SmartPark Pro - Sistema de Estacionamento inicializado!');
+        console.log('✅ Funcionalidades:');
+        console.log('  - Controle de Vagas (Normais, Preferenciais, Idosos, Gestantes)');
+        console.log('  - Controle de Placas');
+        console.log('  - Tabela de Preços (Hora, Diária, Mensal, Anual)');
+        console.log('  - Cadastro de Clientes');
+        console.log('  - Cadastro de Veículos (Cor, Modelo, Marca, Tamanho, Tipo, Ano)');
+        console.log('  - Relatórios Gerenciais');
+    </script>
+</body>
+
+</html>
